@@ -1,0 +1,84 @@
+#!/bin/bash
+
+ROOT=`realpath $(dirname $BASH_SOURCE)`
+
+IMAGE_DIR=$ROOT/images
+DOWNLOAD_DIR=$ROOT/downloads
+SOURCE_DIR=$ROOT/sources
+DOCKER_DIR=$ROOT/dockers
+SYSTEM=$(uname)
+
+#######################
+# docker subcommand
+#######################
+docker-build() {
+    docker rmi karchx/kernel-setup > /dev/null 2>&1
+    docker build -t karchx/kernel-setup $DOCKER_DIR
+}
+
+docker-run() {
+    if [[ $# == 0 ]]; then
+        DOCKER_TAG=work
+    else
+        DOCKER_TAG=$1
+    fi
+
+    if [[ $UNAME == "LINUX" ]]; then
+        VOLUMES=/Volumes/sources:/Volumes/sources
+    else
+        VOLUMES=C:/Volumes/sources:/Volumes/sources
+    fi
+
+
+    IMAGE=karchx/kernel-setup:$DOCKER_TAG
+    CONTAINER=kernel-setup-$DOCKER_TAG
+
+    DOCKER_FILE="$DOCKER_DIR/Dockerfile.$DOCKER_TAG"
+    if [[ ! -f $DOCKER_FILE ]]; then
+        echo "File $DOCKER_FILE not exist"
+        exit -1
+    fi
+
+    docker rm "$CONTAINER" > /dev/null 2>&1
+    docker rmi "$IMAGE" > /dev/null 2>&1
+    docker build -t "$IMAGE" -f "$DOCKER_FILE" "$ROOT" && \
+    docker run --rm -it --privileged --security-opt seccomp=unconfined -v "$ROOT:/root/bea" -v "$VOLUMES" --name "$CONTAINER" "$IMAGE"
+}
+
+usage () {
+	echo "$0 Command [Args ...]"
+	echo "Avaiable commands:"
+	echo "  disk-build            : build a debian filesystem image"
+	echo "  disk-resize           : resize the created filesystem image"
+	echo "  docker-build          : build a docker for kernel building"
+	echo "  docker-run            : run the built docker"
+	echo "  kernel-source-prepare : download and extract source code of kernel"
+	echo "  kernel-build          : build kernel"
+	echo "  kernel-run            : run the docker"
+	echo "  kernel-ssh            : ssh to running kernel"
+	echo "  kernel-sftp           : sftp to running kernel"
+	echo "  kernel-sync           : send files to running kernel"
+	echo "  kernel-module-install : install module into the running kernel"
+	echo "  llvm-source-prepare   : download and extract source code of llvm+clang"
+	echo "  llvm-build-install    : build and install llvm+clang from source"
+}
+
+POSITIONAL=()
+if [[ $# == 0 ]]; then
+    usage
+    exit
+fi
+
+SUBCOMMAND=$1
+shift
+case $SUBCOMMAND in
+    docker-build)
+        docker-build $@
+        ;;
+    docker-run)
+        docker-run $@
+        ;;
+    *)
+        usage
+        ;;
+esac
