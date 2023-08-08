@@ -8,10 +8,10 @@ RUN pacman -Syyu --noconfirm
 RUN pacman -Sy --noconfirm base-devel nasm bc
 
 # install libs and tools are necessary for Linux
-RUN pacman -Sy --noconfirm flex bison libelf-dev libssl-dev kmod
+RUN pacman -Sy --noconfirm flex bison libelf openssl kmod
 
 # install build tools
-RUN pacman -Sy --noconfirm ninja-build cmake
+RUN pacman -Sy --noconfirm cmake
 
 # install network tools and "downloaders"
 RUN pacman -Sy --noconfirm netcat git curl net-tools wget
@@ -20,13 +20,13 @@ RUN pacman -Sy --noconfirm netcat git curl net-tools wget
 RUN pacman -Sy --noconfirm gdb
 
 # install qemu
-RUN pacman -Sy --noconfirm qemu kvm
+RUN pacman -Sy --noconfirm qemu-full
 
 # install required tools for creating images
 RUN pacman -Sy --noconfirm sudo debootstrap
 
 # install python ruby environment
-RUN pacman -Sy --noconfirm python3-dev python3-pip ipython3 ruby-dev
+RUN pacman -Sy --noconfirm python python-pip ipython ruby
 
 # install vim with .vimrc
 RUN pacman -Sy --noconfirm vim &&\
