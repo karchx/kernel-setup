@@ -1,8 +1,8 @@
-FROM archlinux:latest
+FROM --platform=linux/amd64 archlinux:latest
 
 WORKDIR /root/
 
-RUN pacman -Syyu --noconfirm 
+RUN pacman -Syyu --noconfirm
 
 # install basic libs and tools
 RUN pacman -Sy --noconfirm base-devel nasm bc

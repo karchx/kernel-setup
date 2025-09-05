@@ -1,3 +1,27 @@
-FROM karchx/kernel-setup
+FROM alpine
 
-WORKDIR /root/bea
+RUN apk add --no-cache sudo \
+    bash \
+    coreutils \
+    git \
+    vim \
+    zsh \
+    tmux \
+    curl \
+    wget \
+    python3 \
+    py3-pip \
+    gdb \
+    qemu-system-x86_64 \
+    build-base \
+    cmake \
+    flex \
+    bison \
+    libelf-dev \
+    openssl-dev \
+    kmod \
+    nasm
+
+RUN sh <(curl -L https://nixos.org/nix/install) --daemon
+
+WORKDIR /lab
