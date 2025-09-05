@@ -1,18 +1,3 @@
-FROM alpine
-
-RUN apk add --no-cache sudo \
-    bash \
-    coreutils \
-    git \
-    vim \
-    xz \
-    curl
-
-RUN addgroup -S nixgroup && adduser -S nix -G nixgroup -D
-RUN echo "nix ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-
-USER nix
-
-RUN curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
+FROM nixos/nix
 
 WORKDIR /lab

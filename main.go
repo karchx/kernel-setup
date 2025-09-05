@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/api/types/build"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	log "github.com/gothew/l-og"
 	"github.com/moby/term"
@@ -66,8 +67,8 @@ func createContainer(ctx context.Context, cli *client.Client) (io.ReadCloser, er
 	return out, nil
 }
 
-func createContainerTTY(ctx context.Context, config *container.Config, cli *client.Client) {
-	resp, err := cli.ContainerCreate(ctx, config, nil, nil, nil, "")
+func createContainerTTY(ctx context.Context, cli *client.Client, config *container.Config, hostConfig *container.HostConfig) {
+	resp, err := cli.ContainerCreate(ctx, config, hostConfig, nil, nil, "")
 
 	if resp.ID == "" {
 		if _, err := pullImage(ctx, cli); err != nil {
@@ -111,7 +112,8 @@ func createContainerTTY(ctx context.Context, config *container.Config, cli *clie
 	_, _ = io.Copy(os.Stdout, hijack.Conn)
 }
 
-func buildDockerfile(ctx context.Context, dockerfile string, cli *client.Client) {
+func buildDockerfile(ctx context.Context, dockerfile string, cli *client.Client) string {
+	imageTag := "lab:latest"
 	tarBuf := new(bytes.Buffer)
 	tw := tar.NewWriter(tarBuf)
 
@@ -138,7 +140,7 @@ func buildDockerfile(ctx context.Context, dockerfile string, cli *client.Client)
 	tw.Close()
 
 	buildResp, err := cli.ImageBuild(ctx, tarBuf, build.ImageBuildOptions{
-		Tags:       []string{"lab:latest"},
+		Tags:       []string{imageTag},
 		Dockerfile: filepath.Base(dockerfile),
 		Remove:     true,
 	})
@@ -149,6 +151,7 @@ func buildDockerfile(ctx context.Context, dockerfile string, cli *client.Client)
 	defer buildResp.Body.Close()
 	_, _ = io.Copy(os.Stdout, buildResp.Body)
 	log.Info("Build complete")
+	return imageTag
 }
 
 func main() {
@@ -160,16 +163,29 @@ func main() {
 	defer cli.Close()
 
 	dockerfile := "dockers/Dockerfile.work"
-	buildDockerfile(ctx, dockerfile, cli)
+	imageTag := buildDockerfile(ctx, dockerfile, cli)
 
-	// createContainerTTY(ctx, &container.Config{
-	// 	Image:        "archlinux",
-	// 	Cmd:          []string{"/bin/sh"},
-	// 	Tty:          true,
-	// 	OpenStdin:    true,
-	// 	AttachStdin:  true,
-	// 	AttachStdout: true,
-	// 	AttachStderr: true,
-	// }, cli)
+	abs, _ := filepath.Abs("../saas-infra")
+	_, err = os.Stat(abs)
+	if os.IsNotExist(err) {
+		log.Fatalf("La ruta no existe: %s", abs)
+	}
+	createContainerTTY(ctx, cli, &container.Config{
+		Image:        imageTag,
+		Cmd:          []string{"/bin/sh"},
+		Tty:          true,
+		OpenStdin:    true,
+		AttachStdin:  true,
+		AttachStdout: true,
+		AttachStderr: true,
+	}, &container.HostConfig{
+		Mounts: []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: abs,
+				Target: "/lab",
+			},
+		},
+	})
 	// stdcopy.StdCopy(os.Stdout, os.Stderr, out)
 }
